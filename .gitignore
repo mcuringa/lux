@@ -143,7 +143,7 @@ vite.config.ts.timestamp-*
 .vite/
 
 # Local CircuitPython secrets and Python cache
-src/config.local.py
+config.json
 
 __pycache__/
 *.py[cod]
