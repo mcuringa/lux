@@ -1,16 +1,12 @@
 # light switch code, will be moving out
 import time
-import adafruit_requests
-import socketpool
-import wifi
-
 import board
 import analogio
 import neopixel
 import utils
 
 import config
-LIFX_ID = "d073d5896ed2"
+
 # max: 2.575
 # min: .02
 
@@ -61,8 +57,7 @@ def get_lights():
 
 
 def toggle():
-    response = requests.post(
-        f"{base}/id:{LIFX_ID}/toggle", auth=(config.lifx, ""))
+    response = requests.post( f"{base}/id:{LIFX_ID}/toggle", auth=(config.lifx, ""))
     return response.json()
 
 

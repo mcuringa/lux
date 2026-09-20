@@ -1,10 +1,8 @@
 from pathlib import Path
 import os
 import shutil
-import socket
 import subprocess
-import time
-import urllib.request
+import requests
 
 from invoke import task
 import json
@@ -54,6 +52,22 @@ def find_circuitpy() -> Path:
         f"Searched: {searched}"
     )
 
+@task
+def lights(ctx, v=False):
+    base = "https://api.lifx.com/v1/lights"
+    config = get_config()
+    response = requests.get(f"{base}/all", auth=(config["lifx_key"], ""))
+    x = response.json()
+    if v:
+        print(json.dumps(x, indent=4))
+        return
+
+    for light in x:
+        print(f"""
+Light: {light['label']}
+ID: {light['id']}
+        """)
+
 
 @task
 def push(ctx):
@@ -86,9 +100,9 @@ def circ_libs(ctx):
     circup = shutil.which("circup")
     circuitpy_path = find_circuitpy()
 
-
-    libraries = remote_libraries()
+    print(f"Installing CircuitPython libraries to {circuitpy_path}...")
+    print(f"Libraries to install: {'\n\t'.join(libs)}")
     subprocess.run(
-        [circup, "--path", str(circuitpy_path), "install", *libraries],
+        [circup, "--path", str(circuitpy_path), "install", *libs],
         check=True,
     )
