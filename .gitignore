@@ -143,9 +143,13 @@ vite.config.ts.timestamp-*
 .vite/
 
 # Local CircuitPython secrets and Python cache
-apps/remote/config.local.py
+src/config.local.py
+
 __pycache__/
 *.py[cod]
 
 # MacOS-specific files
 .DS_Store
+
+
+
