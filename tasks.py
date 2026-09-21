@@ -3,17 +3,47 @@ import os
 import shutil
 import subprocess
 import requests
+import json
+import tomllib
 
 from invoke import task
-import json
+
+
+def default_config() -> str:
+    """
+    Default configuration for the project.
+    """
+
+    return """
+[wifi]
+ssid = "YOUR WIFI NAME"
+password = "WIFI PASSWORD"
+
+
+[lifx]
+# your lifx API key can be found here: https://cloud.lifx.com/settings
+key = "YOUR LIFX API KEY"
+
+# the lifx light you want to control, can be found here: https://api.lifx.com/v1/lights/all
+# or run `invoke lights` to see all of the lights connected to your API key
+light_id = "YOUR LIFX LIGHT ID"
+
+
+# sensor config
+# temperature_offset = -5
+# sea_level_pressure = 1013.25
+    
+    """
+
 
 def get_config() -> dict:
-    """Get the configuration from the config.json file."""
-    config_path = Path("./config.json")
+    """Get the configuration from the config.toml file."""
+    config_path = Path("./config.toml")
     if not config_path.exists():
-        raise FileNotFoundError(f"Could not find config.json at {config_path}")
-    with open(config_path, "r") as f:
-        return json.load(f)
+        raise FileNotFoundError(f"Could not find config.toml at {config_path}")
+    with config_path.open("rb") as f:
+        config = tomllib.load(f)
+    return config
 
 
 def find_circuitpy() -> Path:
@@ -52,6 +82,41 @@ def find_circuitpy() -> Path:
         f"Searched: {searched}"
     )
 
+
+@task
+def config(ctx):
+    def emit(data, indent=0):
+        lines = []
+        pad = " " * indent
+
+        # Values first
+        for key, value in data.items():
+            if not isinstance(value, dict):
+                lines.append(f"{pad}{key} = {value!r}")
+
+        # Sections become namespace classes
+        for key, value in data.items():
+            if isinstance(value, dict):
+                if lines:
+                    lines.append("")
+                lines.append(f"{pad}class {key}:")
+                body = emit(value, indent + 4)
+                lines.extend(body or [f"{pad}    pass"])
+
+        return lines
+
+    py_file = Path("./src/config.py")
+    config = get_config()
+
+    output = [
+        "# Generated from config.toml -- do not edit.",
+        "",
+        *emit(config),
+        "",
+    ]
+
+    py_file.write_text("\n".join(output))
+
 @task
 def lights(ctx, v=False):
     base = "https://api.lifx.com/v1/lights"
@@ -68,7 +133,6 @@ Light: {light['label']}
 ID: {light['id']}
         """)
 
-
 @task
 def push(ctx):
     """Copy config.json into src and all src python files into CIRCUITPY."""
@@ -82,8 +146,6 @@ def push(ctx):
     for py_file in Path("src").glob("*.py"):
         shutil.copy2(py_file, circuitpy_path / py_file.name)
     print("Pushed config.json and src/*.py files to CIRCUITPY.")
-
-
 
 @task(name="circ-libs")
 def circ_libs(ctx):
@@ -106,3 +168,14 @@ def circ_libs(ctx):
         [circup, "--path", str(circuitpy_path), "install", *libs],
         check=True,
     )
+
+@task
+def install(ctx):
+    """Install the required python packages into the virtual environment."""
+    del ctx
+    print("Creating default config.toml")
+    config_path = Path("config.toml")
+    if not config_path.exists():
+        config_path.write_text(default_config())
+        print("Created default config.toml")
+

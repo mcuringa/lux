@@ -42,13 +42,14 @@ local light switch. The basic steps are:
    - install python for your computer if needed (along with other python requirements)
    - create a virtual environment in the `venv` directory
    - install the required python packages into the virtual environment
+     - `pip install -r requirements.txt` or `uv pip install -r requirements.txt` depending on your setup
 3. Activate the virtual environment by running `source venv/bin/activate` (on linux or mac) or `venv\Scripts\activate` (on windows). You should see `(venv)` in your terminal prompt.
 3. In the python environment in the, run `invoke install`. This will install the required packages on your 
-   and provide further instructions if you need system installs.
+   set up local configuration files and provide further instructions if you need system installs.
 
 
 Pushing your changes
---------------------
+---------------------
 After you make changes to `config.json` or write custom routines (e.g. for buttons):
 
 1. Connect your qtypy to your computer via USB.
