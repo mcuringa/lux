@@ -76,11 +76,42 @@ def find_circuitpy() -> Path:
             return candidate
 
     searched = ", ".join(str(candidate) for candidate in candidates)
-    raise ValueError(
-        "Could not find the CIRCUITPY volume. "
-        "Set CIRCUITPY=/path/to/CIRCUITPY or pass --circuitpy. "
-        f"Searched: {searched}"
-    )
+    print(f"Could not find CIRCUITPY volume. Searched: {searched}")
+    return None
+
+def find_pyboot() -> Path:
+    """Find the mount point for the boot volume for qt py."""
+    candidates = []
+    # /run/media/mxc/QTPYS3BOOT
+
+    config = get_config()
+    config_path = config.get("QTPYS3BOOT")
+    if config_path:
+        candidates.append(Path(config_path))
+
+    # get linux paths
+    user = os.environ.get("USER")
+    if user:
+        candidates.extend(
+            [
+                Path("/media") / user / "QTPYS3BOOT",
+                Path("/run/media") / user / "QTPYS3BOOT",
+            ]
+        )
+    # add macOS path
+    candidates.append(Path("/Volumes/QTPYS3BOOT"))
+
+    # add default Windows path
+    candidates.append(Path("C:/QTPYS3BOOT"))
+
+    for candidate in candidates:
+        if candidate.exists() and candidate.is_dir():
+            print(f"QTPYS3BOOT mounted at {candidate}")
+            return candidate
+
+    searched = ", ".join(str(candidate) for candidate in candidates)
+    print(f"Could not find QTPYS3BOOT volume. Searched: {searched}")
+    return None
 
 
 @task
@@ -118,7 +149,7 @@ def config(ctx):
     py_file.write_text("\n".join(output))
 
 @task
-def lights(ctx, v=False):
+def lights(c, v=False):
     base = "https://api.lifx.com/v1/lights"
     config = get_config()
     response = requests.get(f"{base}/all", auth=(config["lifx_key"], ""))
@@ -134,23 +165,22 @@ ID: {light['id']}
         """)
 
 @task
-def push(ctx):
+def push(c):
     """Copy config.json into src and all src python files into CIRCUITPY."""
-    del ctx
     print("Pushing config.json and src/*.py files to CIRCUITPY...")
     circuitpy_path = find_circuitpy()
 
-    # copy config.json to CIRCUITPY
-    shutil.copy2("config.json", circuitpy_path / "config.json")
+    # update config to config.py
+    config(c)
+
     # copy all .py files from src to CIRCUITPY
     for py_file in Path("src").glob("*.py"):
         shutil.copy2(py_file, circuitpy_path / py_file.name)
-    print("Pushed config.json and src/*.py files to CIRCUITPY.")
+    print("Pushed src/*.py files to CIRCUITPY.")
 
 @task(name="circ-libs")
-def circ_libs(ctx):
+def circ_libs(c):
     """Install CircuitPython libraries from requirements-circuitpython.txt."""
-    del ctx
 
     libs = []
     with open("requirements-circuitpython.txt", "r") as f:
@@ -169,13 +199,32 @@ def circ_libs(ctx):
         check=True,
     )
 
+
+@task(name="init-qtpy")
+def init_qtpy(c):
+    """Copy project Python files to QTPYS3BOOT."""
+    boot = find_pyboot()
+    if not boot:
+        print("""Could not find QTPYS3BOOT volume.
+- Make sure your QT Py is connected with a data cable.
+- Push the RESET button twice to enter bootloader mode.
+- See: https://learn.adafruit.com/adafruit-qt-py-esp32-s3/factory-reset
+""")
+        return
+
+
+    c.run(f"circup install --board-id adafruit_qtpy_esp32s3_nopsram --path {boot}")
+
 @task
-def install(ctx):
+def install(c, provision=False):
     """Install the required python packages into the virtual environment."""
-    del ctx
     print("Creating default config.toml")
     config_path = Path("config.toml")
     if not config_path.exists():
         config_path.write_text(default_config())
         print("Created default config.toml")
+    if provision:
+        print("Provisioning CIRCUITPY...")
+        init_qtpy(c)
+        # circ_libs(c)
 
