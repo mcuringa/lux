@@ -6,11 +6,12 @@ import neopixel
 
 print("hello world")
 
-# flash the noboard neopixel 5 times then go solid green
 pixels = neopixel.NeoPixel(board.NEOPIXEL, 1)
-for i in range(5):
-    pixels.fill((255, 0, 0))
-    time.sleep(0.5)
-    pixels.fill((0, 0, 0))
-    time.sleep(0.5)
+# run through 50 different colors with a very short delay
+for i in range(50):
+    pixels.fill((i * 5, 255 - i * 5, i * 2))
+    time.sleep(0.03)
+
+print("up and running")
 pixels.fill((0, 255, 0))
+time.sleep(120)

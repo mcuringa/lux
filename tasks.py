@@ -228,3 +228,6 @@ def install(c, provision=False):
         init_qtpy(c)
         # circ_libs(c)
 
+@task
+def terminal(c):
+    c.run("tio /dev/ttyACM0")
