@@ -152,7 +152,7 @@ def config(ctx):
 def lights(c, v=False):
     base = "https://api.lifx.com/v1/lights"
     config = get_config()
-    response = requests.get(f"{base}/all", auth=(config["lifx_key"], ""))
+    response = requests.get(f"{base}/all", auth=(config["lifx"]["key"], ""))
     x = response.json()
     if v:
         print(json.dumps(x, indent=4))
@@ -176,6 +176,7 @@ def push(c):
     # copy all .py files from src to CIRCUITPY
     for py_file in Path("src").glob("*.py"):
         shutil.copy2(py_file, circuitpy_path / py_file.name)
+    shutil.copytree(Path("src/tests"), circuitpy_path / "tests", dirs_exist_ok=True)
     print("Pushed src/*.py files to CIRCUITPY.")
 
 @task(name="circ-libs")
@@ -229,5 +230,5 @@ def install(c, provision=False):
         # circ_libs(c)
 
 @task
-def terminal(c):
-    c.run("tio /dev/ttyACM0")
+def console(c):
+    c.run("tio /dev/ttyACM0", pty=True, echo=True, env={"TERM": "xterm-256color"})

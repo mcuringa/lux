@@ -1,17 +1,20 @@
 import time
 import board
 import neopixel
+# from tests import lifx_test
 
+import supervisor
 
+supervisor.runtime.autoreload = False
 
-print("hello world")
+print("testing wifi")
+import utils
+requests = utils.get_requests()
+print(requests.get("https://example.com").text)
 
 pixels = neopixel.NeoPixel(board.NEOPIXEL, 1)
-# run through 50 different colors with a very short delay
-for i in range(50):
-    pixels.fill((i * 5, 255 - i * 5, i * 2))
-    time.sleep(0.03)
-
 print("up and running")
-pixels.fill((0, 255, 0))
-time.sleep(120)
+# pixels.fill((0, 255, 0))
+# time.sleep(3)
+# print("testing wifi and lifx")
+# lifx_test.test()
